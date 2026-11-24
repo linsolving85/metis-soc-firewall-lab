@@ -1,0 +1,22 @@
+#!/bin/bash
+PATH=/usr/bin:/bin
+RULES=/home/student/firewall.rules
+ATTACKER="198.51.100.23"
+
+if [ ! -f "$RULES" ] || [ -L "$RULES" ]; then
+  echo "找不到 ~/firewall.rules（或它不是一般檔案）。"; exit 1
+fi
+found=0; bad=0
+while read -r t; do
+  [ -z "$t" ] && continue
+  if [ "$t" = "$ATTACKER" ]; then found=1; else bad=1; fi
+done < <(grep -E '^DROP[[:space:]]+' "$RULES" | awk '{print $2}' | sed 's#/32$##' | sort -u)
+
+if [ $bad -eq 1 ]; then
+  echo "規則中有不應封鎖的目標：正常客戶、合作夥伴或內網會被誤擋。請只封鎖攻擊來源。"; exit 1
+fi
+if [ $found -eq 0 ]; then
+  echo "攻擊仍未被阻斷。請在 ~/firewall.rules 新增一行：DROP <IP>"; exit 1
+fi
+echo "攻擊已被阻斷，服務正常。"
+echo "FLAG{soc_block_attacker_ok}"
