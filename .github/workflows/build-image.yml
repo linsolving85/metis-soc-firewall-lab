@@ -1,0 +1,24 @@
+name: build-image
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+  packages: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: metis-soc-firewall-lab
+          push: true
+          tags: ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+      - run: echo "ghcr.io/${{ github.repository }}:${{ github.ref_name }}@${{ steps.push.outputs.digest }}" >> "$GITHUB_STEP_SUMMARY"
