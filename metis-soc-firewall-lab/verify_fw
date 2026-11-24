@@ -1,22 +1,46 @@
-#!/bin/bash
-PATH=/usr/bin:/bin
-RULES=/home/student/firewall.rules
-ATTACKER="198.51.100.23"
+#!/usr/bin/env bash
+set -euo pipefail
 
-if [ ! -f "$RULES" ] || [ -L "$RULES" ]; then
-  echo "找不到 ~/firewall.rules（或它不是一般檔案）。"; exit 1
-fi
-found=0; bad=0
-while read -r t; do
-  [ -z "$t" ] && continue
-  if [ "$t" = "$ATTACKER" ]; then found=1; else bad=1; fi
-done < <(grep -E '^DROP[[:space:]]+' "$RULES" | awk '{print $2}' | sed 's#/32$##' | sort -u)
+RULES_FILE="$HOME/firewall.rules"
+ATTACKER_IP="198.51.100.23"
+FLAG="metis{soc_block_attacker_ok}"
 
-if [ $bad -eq 1 ]; then
-  echo "規則中有不應封鎖的目標：正常客戶、合作夥伴或內網會被誤擋。請只封鎖攻擊來源。"; exit 1
+if [[ ! -f "$RULES_FILE" ]]; then
+  echo "找不到 $RULES_FILE，請先使用 block <IP> 封鎖攻擊來源。"
+  exit 1
 fi
-if [ $found -eq 0 ]; then
-  echo "攻擊仍未被阻斷。請在 ~/firewall.rules 新增一行：DROP <IP>"; exit 1
+
+# 抓出非空白且非註解的規則行
+mapfile -t ACTIVE_RULES < <(grep -vE '^[[:space:]]*(#|$)' "$RULES_FILE" || true)
+
+if [[ ${#ACTIVE_RULES[@]} -eq 0 ]]; then
+  echo "目前尚未設定任何防火牆規則，請先使用 block $ATTACKER_IP 封鎖攻擊者。"
+  exit 1
 fi
-echo "攻擊已被阻斷，服務正常。"
-echo "metis{soc_block_attacker_ok}"
+
+# 檢查是否誤封整個 /24 網段或合作夥伴／內網
+for line in "${ACTIVE_RULES[@]}"; do
+  if [[ "$line" == *"/24"* ]] || [[ "$line" == *"192.0.2."* ]] || [[ "$line" == *"10."* ]] || [[ "$line" == *"192.168."* ]]; then
+    echo "驗證失敗：規則可能影響到正常客戶、合作夥伴或內網（$line），請用 unblock 修正後再試。"
+    exit 1
+  fi
+done
+
+# 確認有精準封鎖 198.51.100.23 且沒有多餘錯誤封鎖
+MATCH_ATTACKER=0
+for line in "${ACTIVE_RULES[@]}"; do
+  if [[ "$line" =~ (^|[[:space:]])DROP[[:space:]]+${ATTACKER_IP}(/32)?([[:space:]]|$) ]]; then
+    MATCH_ATTACKER=1
+  else
+    echo "驗證失敗：發現非預期的規則「$line」，請只保留對 $ATTACKER_IP 的封鎖。"
+    exit 1
+  fi
+done
+
+if [[ "$MATCH_ATTACKER" -eq 1 ]]; then
+  echo "防護驗證通過！已成功阻斷攻擊來源 $ATTACKER_IP。"
+  echo "FLAG: $FLAG"
+else
+  echo "驗證失敗：尚未封鎖攻擊來源 $ATTACKER_IP。"
+  exit 1
+fi
