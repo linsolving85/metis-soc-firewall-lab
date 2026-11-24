@@ -3,7 +3,7 @@ set -euo pipefail
 
 RULES_FILE="$HOME/firewall.rules"
 ATTACKER_IP="198.51.100.23"
-FLAG="metis{soc_block_attacker_ok}"
+FLAG="metis{c29jX2Jsb2NrX2F0dGFja2VyX29r}"
 
 if [[ ! -f "$RULES_FILE" ]]; then
   echo "找不到 $RULES_FILE，請先使用 block <IP> 封鎖攻擊來源。"
