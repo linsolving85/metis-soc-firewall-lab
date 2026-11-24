@@ -3,9 +3,13 @@ FROM debian:stable-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends sudo \
     && rm -rf /var/lib/apt/lists/* \
-    && useradd -m -s /bin/bash student
+    && useradd -m -s /bin/bash student \
+    && echo 'cd ~' >> /home/student/.bashrc
 
 COPY --chown=student:student --chmod=0644 home/notes.txt home/access.log home/firewall.rules /home/student/
+
+# 簡化輸入的防火牆指令
+COPY --chmod=0755 block unblock rules /usr/local/bin/
 
 # 驗證腳本與 Flag 只有 root 讀得到；student 只能透過 sudo 執行它
 COPY --chown=root:root --chmod=0700 verify_fw /usr/local/sbin/verify_fw

@@ -1,0 +1,4 @@
+#!/bin/bash
+# 查看目前的防火牆規則
+r=$(grep -E '^DROP' "$HOME/firewall.rules" 2>/dev/null)
+[ -z "$r" ] && echo "（目前沒有任何規則）" || echo "$r"

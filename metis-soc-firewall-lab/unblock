@@ -1,0 +1,6 @@
+#!/bin/bash
+# 用法：unblock <IP>   移除一條 DROP 規則
+RULES="$HOME/firewall.rules"
+[ -z "$1" ] && { echo "用法：unblock <IP>"; exit 1; }
+tmp=$(mktemp); grep -vxF "DROP $1" "$RULES" > "$tmp"; cat "$tmp" > "$RULES"; rm -f "$tmp"
+echo "已移除：DROP $1"
