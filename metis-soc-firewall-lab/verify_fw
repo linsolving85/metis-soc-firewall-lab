@@ -19,4 +19,4 @@ if [ $found -eq 0 ]; then
   echo "攻擊仍未被阻斷。請在 ~/firewall.rules 新增一行：DROP <IP>"; exit 1
 fi
 echo "攻擊已被阻斷，服務正常。"
-echo "FLAG{soc_block_attacker_ok}"
+echo "metis{soc_block_attacker_ok}"
